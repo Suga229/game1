@@ -1,0 +1,137 @@
+import pygame
+import random
+
+# Inisialisasi pygame
+pygame.init()
+
+# Ukuran layar
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+
+# Warna
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Inisialisasi layar
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Fly Bird")
+
+# Mengatur font
+font = pygame.font.SysFont(None, 55)
+
+def draw_floor():
+    screen.blit(floor_surface, (floor_x_pos, 500))
+    screen.blit(floor_surface, (floor_x_pos + SCREEN_WIDTH, 500))
+
+def create_pipe():
+    random_pipe_pos = random.choice(pipe_height)
+    bottom_pipe = pipe_surface.get_rect(midtop=(500, random_pipe_pos))
+    top_pipe = pipe_surface.get_rect(midbottom=(500, random_pipe_pos - 200))
+    return bottom_pipe, top_pipe
+
+def move_pipes(pipes):
+    for pipe in pipes:
+        pipe.centerx -= 5
+    return pipes
+
+def draw_pipes(pipes):
+    for pipe in pipes:
+        if pipe.bottom >= 600:
+            screen.blit(pipe_surface, pipe)
+        else:
+            flip_pipe = pygame.transform.flip(pipe_surface, False, True)
+            screen.blit(flip_pipe, pipe)
+
+def check_collision(pipes):
+    for pipe in pipes:
+        if bird_rect.colliderect(pipe):
+            return False
+
+    if bird_rect.top <= -100 or bird_rect.bottom >= 500:
+        return False
+
+    return True
+
+def rotate_bird(bird):
+    new_bird = pygame.transform.rotozoom(bird, -bird_movement * 3, 1)
+    return new_bird
+
+# Load gambar
+bg_surface = pygame.image.load('image.png').convert()
+bg_surface = pygame.transform.scale(bg_surface, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+floor_surface = pygame.image.load('floor.png').convert()
+floor_surface = pygame.transform.scale(floor_surface, (SCREEN_WIDTH, 100))
+floor_x_pos = 0
+
+bird_surface = pygame.image.load('my bird.jpg').convert_alpha()
+bird_surface = pygame.transform.scale(bird_surface, (50, 40))
+bird_rect = bird_surface.get_rect(center=(100, 300))
+
+pipe_surface = pygame.image.load('pipe.jpeg').convert()
+pipe_surface = pygame.transform.scale(pipe_surface, (70, 400))
+pipe_list = []
+SPAWNPIPE = pygame.USEREVENT
+pygame.time.set_timer(SPAWNPIPE, 1200)
+pipe_height = [200, 300, 400]
+
+# Variabel permainan
+gravity = 0.25
+bird_movement = 0
+game_active = True
+score = 0
+high_score = 0
+
+# Game loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and game_active:
+                bird_movement = 0
+                bird_movement -= 7
+            if event.key == pygame.K_SPACE and game_active == False:
+                game_active = True
+                pipe_list.clear()
+                bird_rect.center = (100, 300)
+                bird_movement = 0
+                score = 0
+        if event.type == SPAWNPIPE:
+            pipe_list.extend(create_pipe())
+
+    screen.blit(bg_surface, (0, 0))
+
+    if game_active:
+        # Bird
+        bird_movement += gravity
+        rotated_bird = rotate_bird(bird_surface)
+        bird_rect.centery += bird_movement
+        screen.blit(rotated_bird, bird_rect)
+        game_active = check_collision(pipe_list)
+
+        # Pipes
+        pipe_list = move_pipes(pipe_list)
+        draw_pipes(pipe_list)
+
+        # Score
+        for pipe in pipe_list:
+            if pipe.centerx == 50:
+                score += 1
+
+        # High Score
+        high_score = max(high_score, score)
+        score_display = font.render(str(score), True, WHITE)
+        screen.blit(score_display, (200, 50))
+
+    # Floor
+    floor_x_pos -= 1
+    draw_floor()
+    if floor_x_pos <= -SCREEN_WIDTH:
+        floor_x_pos = 0
+
+    pygame.display.update()
+    pygame.time.Clock().tick(120)
+
+pygame.quit()
